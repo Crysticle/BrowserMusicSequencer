@@ -1,4 +1,5 @@
 const grid = document.getElementById('grid')
+const synth = new Tone.PolySynth(Tone.Synth).toDestination()
 const tileSize = 40
 
 // Note data is stored in this array as the user places more notes.
@@ -45,7 +46,10 @@ function deleteTile(x, y) {
     }
 }
 
-function createTile(x, y) {
+async function createTile(x, y) {
+    // Trigger sound feedback on tile creation.
+    synth.triggerAttackRelease(pitches[y / 40], "8n", undefined, 0.6)
+
     // Add the tile's position to the array of coordinates.
     coordinates.push([x, y])
 

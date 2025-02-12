@@ -19,7 +19,7 @@ function startPlayback(synth, sortedMidiData) {
         // Schedule those notes to play at the specified times.
         Tone.Transport.schedule(
             function(event) {
-                synth.triggerAttackRelease(notePitch, "4n", event, 0.8)
+                synth.triggerAttackRelease(notePitch, "8n", event, 0.6)
             },
             noteTime
         )
