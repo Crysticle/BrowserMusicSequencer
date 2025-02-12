@@ -33,7 +33,7 @@ function startPlayback(synth, sortedMidiData) {
 playButton.addEventListener("click", async () => {
     await Tone.start()
     const synth = new Tone.PolySynth(Tone.Synth).toDestination()
-    synth.maxPolyphony = 128
+    synth.maxPolyphony = 64
 
     // Get the midi data from the "grid.js" script.
     const notes = getMidiData().notes
@@ -43,17 +43,20 @@ playButton.addEventListener("click", async () => {
 
     // Sort midi data by time.
     let sortedMidiData = {}
-    for (let i = 0; i < notes.length; i++) {
-        const noteTime = notes[i].time
-        const notePitch = notes[i].note
 
-        // If the timeframe doesn't exist, create an array for it.
-        if (!sortedMidiData[noteTime]) {
-            sortedMidiData[noteTime] = []
+    if (notes) {
+        for (let i = 0; i < notes.length; i++) {
+            const noteTime = notes[i].time
+            const notePitch = notes[i].note
+
+            // If the timeframe doesn't exist, create an array for it.
+            if (!sortedMidiData[noteTime]) {
+                sortedMidiData[noteTime] = []
+            }
+
+            // Add the note to the array of the correct timeframe.
+            sortedMidiData[noteTime].push(notePitch)
         }
-
-        // Add the note to the array of the correct timeframe.
-        sortedMidiData[noteTime].push(notePitch)
     }
 
     startPlayback(synth, sortedMidiData)

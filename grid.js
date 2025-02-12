@@ -46,7 +46,7 @@ function deleteTile(x, y) {
     }
 }
 
-async function createTile(x, y) {
+function createTile(x, y) {
     // Trigger sound feedback on tile creation.
     synth.triggerAttackRelease(pitches[y / 40], "8n", undefined, 0.6)
 
