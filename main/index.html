@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            outline: 0;
+            vertical-align: baseline;
+            background: transparent;
+        }
+        #grid-container {
+            width: 100%;
+            height: 80vh;
+            overflow: auto;
+        }
+        #grid {
+            position: relative;
+            width: 1600px;
+            height: 560px;
+            background-image:
+                linear-gradient(to left, lightskyblue 0.5px, transparent 0.5px),
+                linear-gradient(to top, lightskyblue 0.5px, transparent 0.5px),
+                linear-gradient(to right, lightskyblue 0.5px, transparent 0.5px),
+                linear-gradient(to bottom, lightskyblue 0.5px, transparent 0.5px);
+            background-size: 40px 40px; /* Set the grid cell size */
+            background-color: white;
+            overflow: hidden;
+            z-index: 1;
+        }
+        #vertical-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background-image:
+                    linear-gradient(to right, dodgerblue 1px, transparent 1px);
+            background-size: 80px;
+            z-index: 1;
+        }
+        #horizontal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background-image:
+                linear-gradient(to bottom, lightskyblue 1.5px, transparent 1.5px),
+                linear-gradient(to top, lightskyblue 1.5px, transparent 1.5px);
+            background-size: 80px 280px;
+            z-index: 1;
+        }
+        .tile {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            cursor: pointer;
+            z-index: 0;
+        }
+        .tile:hover {
+            background-color: darkcyan;
+        }
+        #bottom {
+            position: fixed;
+            background-color: cadetblue;
+            width: 100%;
+            height: 20%;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.js"></script>
+</head>
+<body>
+<div id="grid-container">
+    <div id="grid">
+        <div id="vertical-overlay"></div>
+        <div id="horizontal-overlay"></div>
+    </div>
+</div>
+<div id="bottom" class="backed">
+    <button id="play-button">Button is Here</button>
+</div>
+<script>
+    // Midi data stored here for Ton.js to read.
+    const midi_data = {
+        "tracks": [
+            {
+                "notes": [
+                    {"time": "0.0", "note": "C1", "duration": "1n"}
+                ]
+            }
+        ]
+    }
+
+    // Initialize grid info.
+    const grid = document.getElementById('grid')
+    const tile_size = 40
+
+    // Initialize button info.
+    const play_button = document.getElementById('play-button')
+
+    // Coordinates of tiles.
+    let coordinates = []
+
+    // Boolean values for handling user mouse activity and placing or deleting tiles.
+    let isMouseDown = false
+    let isEraseModeOn = false
+
+    // Play music from the midi data collected.
+    play_button.addEventListener('click', async () => {
+        console.log(midi_data.tracks[0].notes)
+
+        // Start the audio context after a user gesture
+        await Tone.start();
+        console.log("AudioContext started!");
+
+        // Create a synth
+        const synth = new Tone.Synth().toDestination();
+
+        // Parse the notes from the JSON
+        const notes = midi_data.tracks[0].notes;
+
+        // Create a Part to sequence the notes
+        const part = new Tone.Part((time, value) => {
+            synth.triggerAttackRelease(value.note, value.duration, time);
+        }, notes);
+
+        // Set the part to loop once
+        part.loop = 1;
+        part.start(0);
+
+        // Start the Tone.js transport
+        Tone.Transport.start();
+    })
+
+    // Function for snapping coordinates to the grid
+    function round_coordinates(x, y) {
+        const snappedX = Math.floor(x / tile_size) * tile_size
+        const snappedY = Math.floor(y / tile_size) * tile_size
+        return [snappedX, snappedY]
+    }
+
+    // Function for creating tiles
+    function toggle_tile(x, y) {
+        const existingTile = document.querySelector(`.tile[data-x="${x}"][data-y="${y}"]`)
+        if ((existingTile && isEraseModeOn) || isEraseModeOn) {
+            for (let i = 0; i < coordinates.length; i++) {
+                if (coordinates[i][0] === x) {
+                    if (coordinates[i][1] === y) {
+                        coordinates.splice(i, 1)
+                    }
+                }
+            }
+
+            if (existingTile) {
+                existingTile.remove()
+            }
+        } else if (!existingTile) {
+            coordinates.push([x, y])
+
+            const measure = Math.floor(((x / 40) + 1) / 4)
+            const beat = ((x / 40) + 1) % 4
+
+            let pitches = ["B5", "A5", "G4", "F4", "E4", "D4", "C4", "B4", "A4", "G3", "F3", "E3", "D3", "C3"]
+            let pitch = pitches[(y/40)]
+
+            midi_data.tracks[0].notes.push(
+                {"time": `${measure}:${beat}`, "note": `${pitch}`, "duration": "4n"}
+            )
+
+            //console.log(midi_data.tracks[0].notes)
+
+            const tile = document.createElement("div")
+
+            tile.className = "tile"
+            tile.style.backgroundColor = `hsl(${(6-(y/40))*(360/7)}, 70%, 50%)`
+            tile.style.left = `${x}px`
+            tile.style.top = `${y}px`
+            tile.dataset.x = x
+            tile.dataset.y = y
+
+            grid.appendChild(tile)
+        }
+    }
+
+    // The following functions detect and handle mouse activity.
+    grid.addEventListener('mousedown', (e) => {
+        const rect = grid.getBoundingClientRect()
+        const mouseX = e.clientX - rect.left
+        const mouseY = e.clientY - rect.top
+        const grid_coordinates = round_coordinates(mouseX, mouseY)
+        const existingTile = document.querySelector(`.tile[data-x="${grid_coordinates[0]}"][data-y="${grid_coordinates[1]}"]`)
+        isEraseModeOn = !!existingTile;
+        isMouseDown = true
+        render_tile(e)
+    })
+    grid.addEventListener('mousemove', (e) => {
+        if (isMouseDown) {
+            render_tile(e)
+        }
+    })
+    grid.addEventListener('mouseup', () => {
+        isMouseDown = false
+    })
+
+    // This function runs when anywhere in the grid is clicked
+    function render_tile(e) {
+        const rect = grid.getBoundingClientRect()
+        const mouseX = e.clientX - rect.left
+        const mouseY = e.clientY - rect.top
+        const grid_coordinates = round_coordinates(mouseX, mouseY)
+
+        toggle_tile(grid_coordinates[0], grid_coordinates[1])
+    }
+
+    // MIDI information gets logged into coordinates
+    /*
+    async function get_MIDI() {
+        const MIDI_data = await fetch('./fantasie_impromptu_op_66_6058_d_(nc)smythe.json')
+        const JSON_MIDI_data = await MIDI_data.json()
+
+        for (let i = 0; i < JSON_MIDI_data["tracks"][0]["notes"].length; i++) {
+            coordinates[i] = [JSON_MIDI_data["tracks"][0]["notes"][i]["ticks"],
+                JSON_MIDI_data["tracks"][0]["notes"][i]["midi"]]
+        }
+    }
+
+    get_MIDI()
+     */
+
+</script>
+</body>
+</html>
