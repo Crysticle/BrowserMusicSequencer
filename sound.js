@@ -1,61 +1,60 @@
-import "./grid.js"
+import {getMidiData} from "./grid.js"
 
-// Midi data stored here for Tone.js to read.
-const midi_data = {
-    "tracks": [
-        {
-            "notes": []
-        }
-    ]
-}
+export const beatsPerMeasure = 120
+export const tilesPerBeat = 4
+const playButton = document.getElementById('play-button')
 
-// Initialize button info.
-const play_button = document.getElementById('play-button')
-
-// Play music from the midi data collected.
-play_button.addEventListener("click", async () => {
-    await Tone.start()
-    console.log("Started!")
-
-    const synth = new Tone.PolySynth(Tone.Synth).toDestination()
-    synth.maxPolyphony = 128
-
-    const notes = midi_data.tracks[0].notes
-
+function cancelPlayback() {
     Tone.Transport.stop()
     Tone.Transport.cancel()
+}
 
-    let sorted_midi_data = {}
-    for (let i = 0; i < notes.length; i++) {
-        if (!sorted_midi_data[notes[i].time]) {
-            sorted_midi_data[notes[i].time] = []
-        }
-        sorted_midi_data[notes[i].time].push({
-            note: notes[i].note,
-            duration: notes[i].duration
-        })
-    }
+function startPlayback(synth, sortedMidiData) {
+    const noteTimeGroups = Object.keys(sortedMidiData)
 
-    // For every time like 1:3 in our midi data...
-    for (let i = 0; i < Object.keys(sorted_midi_data).length; i++) {
+    for (let i = 0; i < noteTimeGroups.length; i++) {
+        const noteTime = noteTimeGroups[i]
+        const notePitch = sortedMidiData[noteTime]
 
-        let pitches = []
-        let durations = []
-
-        // For every note in our midi data...
-        for (let j = 0; j < Object.keys(sorted_midi_data[Object.keys(sorted_midi_data)[i]]).length; j++) {
-            pitches.push(sorted_midi_data[Object.keys(sorted_midi_data)[i]][j].note)
-            durations.push(sorted_midi_data[Object.keys(sorted_midi_data)[i]][j].duration)
-        }
-
+        // Schedule those notes to play at the specified times.
         Tone.Transport.schedule(
             function(event) {
-                synth.triggerAttackRelease(pitches, durations[0], event, 0.8)
+                synth.triggerAttackRelease(notePitch, "4n", event, 0.8)
             },
-            Object.keys(sorted_midi_data)[i]
+            noteTime
         )
     }
 
-    Tone.Transport.bpm.value = 240;
-    Tone.Transport.start();
+    Tone.Transport.bpm.value = beatsPerMeasure * tilesPerBeat
+    Tone.Transport.start()
+}
+
+// Play the user's music when the play button is clicked.
+playButton.addEventListener("click", async () => {
+    await Tone.start()
+    const synth = new Tone.PolySynth(Tone.Synth).toDestination()
+    synth.maxPolyphony = 128
+
+    // Get the midi data from the "grid.js" script.
+    const notes = getMidiData().notes
+
+    // Stop any playback that might be playing at the time.
+    cancelPlayback()
+
+    // Sort midi data by time.
+    let sortedMidiData = {}
+    for (let i = 0; i < notes.length; i++) {
+        const noteTime = notes[i].time
+        const notePitch = notes[i].note
+
+        // If the timeframe doesn't exist, create an array for it.
+        if (!sortedMidiData[noteTime]) {
+            sortedMidiData[noteTime] = []
+        }
+
+        // Add the note to the array of the correct timeframe.
+        sortedMidiData[noteTime].push(notePitch)
+    }
+
+    startPlayback(synth, sortedMidiData)
 });
