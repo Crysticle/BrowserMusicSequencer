@@ -55,7 +55,7 @@ document.getElementById("play-button").addEventListener("click", () => {
     // Every beat (well, technically every fourth of a beat) progress the playhead.
     progressLoop = setInterval(() => {
         // Move the playhead 40 pixels to the right.
-        progress += 40;
+        progress = (Tone.Transport.seconds * 8 * 40) - ((Tone.Transport.seconds * 8 * 40) % 40)
         playhead.style.left = `${progress}px`
 
         // Blink all the tiles at the playhead.
