@@ -60,4 +60,4 @@ playButton.addEventListener("click", async () => {
     }
 
     startPlayback(synth, sortedMidiData)
-});
+})

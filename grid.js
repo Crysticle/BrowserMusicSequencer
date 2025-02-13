@@ -119,7 +119,7 @@ grid.addEventListener('mousedown', (e) => {
     if (!isToneRunning) {
         const location = getGridCoordinates(e)
         const existingTile = document.querySelector(`.tile[data-x="${location[0]}"][data-y="${location[1]}"]`)
-        isEraseModeOn = !!existingTile;
+        isEraseModeOn = !!existingTile
         isMouseDown = true
         updateTile(e)
     }
