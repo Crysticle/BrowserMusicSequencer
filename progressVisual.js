@@ -54,7 +54,7 @@ document.getElementById("play-button").addEventListener("click", () => {
 
     // Every beat (well, technically every fourth of a beat) progress the playhead.
     progressLoop = setInterval(() => {
-        // Move the playhead 40 pixels to the right.
+        // Move the playhead to the position of the notes being played, rounded down to the nearest 40 pixels.
         progress = (Tone.Transport.seconds * 8 * 40) - ((Tone.Transport.seconds * 8 * 40) % 40)
         playhead.style.left = `${progress}px`
 
